@@ -608,21 +608,20 @@ class LlavaOneVision_Hermes(LlavaOnevisionForConditionalGeneration, Abstract_Her
             ]).tolist()
             
             keep_indices_all_layers.append(keep_indices)
-            if layer_idx == 0:
-                print(f"\nLayer {layer_idx} | budget={actual_num_keep} | visual_start_idx={start_idx}")
-                print("Số layer trong refined_scores:", len(refined_scores))
+            print(f"\nLayer {layer_idx} | budget={actual_num_keep} | visual_start_idx={start_idx}")
+            print("Số layer trong refined_scores:", len(refined_scores))
 
-                for name, tensor in [
-                    ("score", score),
-                    ("topk_indices_relative", topk_indices_relative),
-                    ("topk_indices_absolute", topk_indices_absolute),
-                    ("topk_indices_absolute_sorted", topk_indices_absolute_sorted),
-                ]:
-                    print(f"{name}: shape={tuple(tensor.shape)}, dtype={tensor.dtype}")
-                    print("  10 phần tử đầu:", tensor[:10].tolist())
+            for name, tensor in [
+                ("score", score),
+                ("topk_indices_relative", topk_indices_relative),
+                ("topk_indices_absolute", topk_indices_absolute),
+                ("topk_indices_absolute_sorted", topk_indices_absolute_sorted),
+            ]:
+                print(f"{name}: shape={tuple(tensor.shape)}, dtype={tensor.dtype}")
+                print("  10 phần tử đầu:", tensor[:10].tolist())
 
-                print("keep_indices là", type(keep_indices).__name__, "| len =", len(keep_indices))
-                print("  10 index đầu:", keep_indices[:10])
+            print("keep_indices là", type(keep_indices).__name__, "| len =", len(keep_indices))
+            print("  10 index đầu:", keep_indices[:10])
         
         return keep_indices_all_layers
 
