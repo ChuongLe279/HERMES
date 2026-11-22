@@ -608,20 +608,66 @@ class LlavaOneVision_Hermes(LlavaOnevisionForConditionalGeneration, Abstract_Her
             ]).tolist()
             
             keep_indices_all_layers.append(keep_indices)
-            print(f"\nLayer {layer_idx} | budget={actual_num_keep} | visual_start_idx={start_idx}")
-            print("Số layer trong refined_scores:", len(refined_scores))
+            print(f"\n{'='*65}")
+            print(f"Layer {layer_idx} | Type: {config['layer_type']}")
+            print(f"{'='*65}")
 
-            for name, tensor in [
-                ("score", score),
-                ("topk_indices_relative", topk_indices_relative),
-                ("topk_indices_absolute", topk_indices_absolute),
-                ("topk_indices_absolute_sorted", topk_indices_absolute_sorted),
-            ]:
-                print(f"{name}: shape={tuple(tensor.shape)}, dtype={tensor.dtype}")
-                print("  10 phần tử đầu:", tensor[:10].tolist())
+            print("Total layers:", len(refined_scores))
+            print("Visual start idx:", start_idx)
+            print("Visual tokens:", score.numel())
+            print("Budget:", actual_num_keep)
+            print("Pruned tokens:", score.numel() - actual_num_keep)
+            print("Keep indices:", len(keep_indices))
 
-            print("keep_indices là", type(keep_indices).__name__, "| len =", len(keep_indices))
-            print("  10 index đầu:", keep_indices[:10])
+            # 1. Score statistics
+            print("\n[Score Statistics]")
+            print("Raw score shape:", tuple(layer_raw_scores[layer_idx].shape))
+            print("Refined score shape:", tuple(score.shape))
+            print("Raw score mean:", layer_raw_scores[layer_idx].mean().item())
+            print("Refined score mean:", score.mean().item())
+            print("Refined score min:", score.min().item())
+            print("Refined score max:", score.max().item())
+
+            # 2. Top 10 tokens thực sự có score cao nhất
+            print("\n[Top 10 Important Tokens]")
+
+            top_values, top_indices = torch.topk(
+                score, min(10, score.numel()), sorted=True
+            )
+
+            for relative_idx, value in zip(top_indices.tolist(), top_values.tolist()):
+                print(
+                    f"Relative={relative_idx}, "
+                    f"Absolute={relative_idx + start_idx}, "
+                    f"Score={value:.6f}"
+                )
+
+            # 3. So sánh trước và sau cross-layer smoothing
+            print("\n[Smoothing Effect]")
+
+            raw_topk = torch.topk(
+                layer_raw_scores[layer_idx],
+                actual_num_keep,
+                sorted=False
+            ).indices
+
+            refined_topk = topk_indices_relative
+
+            overlap_count = torch.isin(raw_topk, refined_topk).sum().item()
+
+            overlap_ratio = (
+                overlap_count / actual_num_keep
+                if actual_num_keep > 0 else 0
+            )
+
+            print("Common selected tokens:", overlap_count)
+            print("Top-k overlap ratio:", f"{overlap_ratio:.2%}")
+
+            # 4. Selected indices
+            print("\n[Selected Indices]")
+            print("Top-k relative shape:", tuple(topk_indices_relative.shape))
+            print("Top-k absolute shape:", tuple(topk_indices_absolute.shape))
+            print("First 10 sorted visual indices:",topk_indices_absolute_sorted[:10].tolist())
         
         return keep_indices_all_layers
 
