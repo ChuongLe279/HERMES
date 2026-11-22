@@ -475,6 +475,11 @@ class LlavaOneVision_Hermes(LlavaOnevisionForConditionalGeneration, Abstract_Her
         return attention_weights_list
 
     def prune_kv_cache_by_attention(self, attn_weights_local, attn_weights_global, attn_weights_mixed, num_keep=3000):
+        """
+        attn_weights_local: shallow layer
+        attn_weights_global: deep layer
+        attn_weights_mixed: middle layer
+        """
         device = self.device
         visual_start_idx = self.visual_start_idx
         num_layers = len(attn_weights_local)
@@ -603,8 +608,24 @@ class LlavaOneVision_Hermes(LlavaOnevisionForConditionalGeneration, Abstract_Her
             ]).tolist()
             
             keep_indices_all_layers.append(keep_indices)
+            if layer_idx == 0:
+                print(f"\nLayer {layer_idx} | budget={actual_num_keep} | visual_start_idx={start_idx}")
+                print("Số layer trong refined_scores:", len(refined_scores))
+
+                for name, tensor in [
+                    ("score", score),
+                    ("topk_indices_relative", topk_indices_relative),
+                    ("topk_indices_absolute", topk_indices_absolute),
+                    ("topk_indices_absolute_sorted", topk_indices_absolute_sorted),
+                ]:
+                    print(f"{name}: shape={tuple(tensor.shape)}, dtype={tensor.dtype}")
+                    print("  10 phần tử đầu:", tensor[:10].tolist())
+
+                print("keep_indices là", type(keep_indices).__name__, "| len =", len(keep_indices))
+                print("  10 index đầu:", keep_indices[:10])
         
         return keep_indices_all_layers
+
     
     @torch.inference_mode()
     def pseudo_forward(self, local_question=None, global_question=None):
